@@ -1,0 +1,348 @@
+yuan@debian:~$ sudo cat /etc/sysctl.conf
+[sudo] password for yuan: 
+#
+# /etc/sysctl.conf - Configuration file for setting system variables
+# See /etc/sysctl.d/ for additional system variables.
+# See sysctl.conf (5) for information.
+#
+
+#kernel.domainname = example.com
+
+# Uncomment the following to stop low-level messages on console
+#kernel.printk = 3 4 1 3
+
+###################################################################
+# Functions previously found in netbase
+#
+
+# Uncomment the next two lines to enable Spoof protection (reverse-path filter)
+# Turn on Source Address Verification in all interfaces to
+# prevent some spoofing attacks
+#net.ipv4.conf.default.rp_filter=1
+#net.ipv4.conf.all.rp_filter=1
+
+# Uncomment the next line to enable TCP/IP SYN cookies
+# See http://lwn.net/Articles/277146/
+# Note: This may impact IPv6 TCP sessions too
+#net.ipv4.tcp_syncookies=1
+
+# Uncomment the next line to enable packet forwarding for IPv4
+net.ipv4.ip_forward=1
+
+# Uncomment the next line to enable packet forwarding for IPv6
+#  Enabling this option disables Stateless Address Autoconfiguration
+#  based on Router Advertisements for this host
+#net.ipv6.conf.all.forwarding=1
+
+
+###################################################################
+# Additional settings - these settings can improve the network
+# security of the host and prevent against some network attacks
+# including spoofing attacks and man in the middle attacks through
+# redirection. Some network environments, however, require that these
+# settings are disabled so review and enable them as needed.
+#
+# Do not accept ICMP redirects (prevent MITM attacks)
+#net.ipv4.conf.all.accept_redirects = 0
+#net.ipv6.conf.all.accept_redirects = 0
+# _or_
+# Accept ICMP redirects only for gateways listed in our default
+# gateway list (enabled by default)
+# net.ipv4.conf.all.secure_redirects = 1
+#
+# Do not send ICMP redirects (we are not a router)
+#net.ipv4.conf.all.send_redirects = 0
+#
+# Do not accept IP source route packets (we are not a router)
+#net.ipv4.conf.all.accept_source_route = 0
+#net.ipv6.conf.all.accept_source_route = 0
+#
+# Log Martian Packets
+#net.ipv4.conf.all.log_martians = 1
+#
+
+###################################################################
+# Magic system request Key
+# 0=disable, 1=enable all, >1 bitmask of sysrq functions
+# See https://www.kernel.org/doc/html/latest/admin-guide/sysrq.html
+# for what other values do
+#kernel.sysrq=438
+
+yuan@debian:~$ sudo sysctl -p
+net.ipv4.ip_forward = 1
+yuan@debian:~$ sudo cat /etc/dhcp/dhcpd.conf
+# dhcpd.conf
+#
+# Sample configuration file for ISC dhcpd
+#
+
+# option definitions common to all supported networks...
+option domain-name "example.org";
+option domain-name-servers ns1.example.org, ns2.example.org;
+
+default-lease-time 600;
+max-lease-time 7200;
+
+subnet 192.168.54.0 netmask 255.255.255.0 {
+    range 192.168.54.111 192.168.54.222;
+    option routers 192.168.54.254;
+    option broadcast-address 192.168.54.255;
+}
+
+# The ddns-updates-style parameter controls whether or not the server will
+# attempt to do a DNS update when a lease is confirmed. We default to the
+# behavior of the version 2 packages ('none', since DHCP v2 didn't
+# have support for DDNS.)
+ddns-update-style none;
+
+# If this DHCP server is the official DHCP server for the local
+# network, the authoritative directive should be uncommented.
+#authoritative;
+
+# Use this to send dhcp log messages to a different log file (you also
+# have to hack syslog.conf to complete the redirection).
+#log-facility local7;
+
+# No service will be given on this subnet, but declaring it helps the 
+# DHCP server to understand the network topology.
+
+#subnet 10.152.187.0 netmask 255.255.255.0 {
+#}
+
+# This is a very basic subnet declaration.
+
+#subnet 10.254.239.0 netmask 255.255.255.224 {
+#  range 10.254.239.10 10.254.239.20;
+#  option routers rtr-239-0-1.example.org, rtr-239-0-2.example.org;
+#}
+
+# This declaration allows BOOTP clients to get dynamic addresses,
+# which we don't really recommend.
+
+#subnet 10.254.239.32 netmask 255.255.255.224 {
+#  range dynamic-bootp 10.254.239.40 10.254.239.60;
+#  option broadcast-address 10.254.239.31;
+#  option routers rtr-239-32-1.example.org;
+#}
+
+# A slightly different configuration for an internal subnet.
+#subnet 10.5.5.0 netmask 255.255.255.224 {
+#  range 10.5.5.26 10.5.5.30;
+#  option domain-name-servers ns1.internal.example.org;
+#  option domain-name "internal.example.org";
+#  option routers 10.5.5.1;
+#  option broadcast-address 10.5.5.31;
+#  default-lease-time 600;
+#  max-lease-time 7200;
+#}
+
+# Hosts which require special configuration options can be listed in
+# host statements.   If no address is specified, the address will be
+# allocated dynamically (if possible), but the host-specific information
+# will still come from the host declaration.
+
+host passacaglia {
+  hardware ethernet 08:00:27:CE:21:86;
+  fixed-address 192.168.54.234;
+#  filename "vmunix.passacaglia";
+ # server-name "toccata.example.com";
+}
+
+# Fixed IP addresses can also be specified for hosts.   These addresses
+# should not also be listed as being available for dynamic assignment.
+# Hosts for which fixed IP addresses have been specified can boot using
+# BOOTP or DHCP.   Hosts for which no fixed address is specified can only
+# be booted with DHCP, unless there is an address range on the subnet
+# to which a BOOTP client is connected which has the dynamic-bootp flag
+# set.
+#host fantasia {
+#  hardware ethernet 08:00:07:26:c0:a5;
+#  fixed-address fantasia.example.com;
+#}
+
+# You can declare a class of clients and then do address allocation
+# based on that.   The example below shows a case where all clients
+# in a certain class get addresses on the 10.17.224/24 subnet, and all
+# other clients get addresses on the 10.0.29/24 subnet.
+
+#class "foo" {
+#  match if substring (option vendor-class-identifier, 0, 4) = "SUNW";
+#}
+
+#shared-network 224-29 {
+#  subnet 10.17.224.0 netmask 255.255.255.0 {
+#    option routers rtr-224.example.org;
+#  }
+#  subnet 10.0.29.0 netmask 255.255.255.0 {
+#    option routers rtr-29.example.org;
+#  }
+#  pool {
+#    allow members of "foo";
+#    range 10.17.224.10 10.17.224.250;
+#  }
+#  pool {
+#    deny members of "foo";
+#    range 10.0.29.10 10.0.29.230;
+#  }
+#}
+yuan@debian:~$ sudo systemctl enable nftables.service
+yuan@debian:~$ sudo systemctl start nftables.service
+yuan@debian:~$ sudo cat /etc/wireguard/wg0.conf
+[Interface]
+PrivateKey = sKjD4EvtWU8mOnTkTnkpS/nUg3YomVBHzX/j2lHDqms=
+Address = 10.113.54.11/32
+
+# [Interface]
+# PrivateKey = SHyQdDK2TXdVjkJR+yWL9VGe3p0/YL7UmUcM5RJ0wXM=
+# Address = 10.113.54.12/32
+
+# [Interface]
+# PrivateKey = IMvw/hKmGOK29aEv16PsQaB0A8KiXjH3+F9FpI0CNEI=
+# Address = 10.113.54.21/32
+
+# [Interface]
+# PrivateKey = CH52Qv+o6QoNZzhf/xd3RBcs0geIlmkGOs8YhJCBs1Y=
+# Address = 10.113.54.22/32
+
+[Peer]
+PublicKey = DqzHzreFSfiUoPg1mspgm1s7eBaTz7Ym0cuKx1gJIyg=
+AllowedIPs = 10.113.0.0/16, 192.168.0.0/16
+Endpoint = 140.113.168.131:51054
+PersistentKeepalive = 15
+yuan@debian:~$ sudo systemctl enable wg-quick@wg0
+yuan@debian:~$ sudo systemctl start wg-quick@wg0
+yuan@debian:~$ sudo cat /etc/isc-dhcp-server
+cat: /etc/isc-dhcp-server: No such file or directory
+yuan@debian:~$ sudo cat isc-dhcp-server
+cat: isc-dhcp-server: No such file or directory
+yuan@debian:~$ sudo cat /etc/network/interfaces
+
+# This file describes the network interfaces available on your system
+# and how to activate them. For more information, see interfaces(5).
+
+source /etc/network/interfaces.d/*
+
+# The loopback network interface
+auto lo
+iface lo inet loopback
+
+#outer interface(nat, dhcp get ip)
+auto enp0s3
+iface enp0s3 inet dhcp
+
+#inner interface 
+auto enp0s8
+iface enp0s8 inet static
+	address 192.168.54.254
+	netmask 255.255.255.0
+	gateway 192.168.54.254
+	# dns-nameservers 8.8.8.8.8.8.4.4
+
+#vpn interface
+#auto enp0s9
+#iface enp0s9 inet static
+#	address 10.113.4.11
+#	netmask 255.255.255.0
+yuan@debian:~$ sudo cat /etc/nftables.conf
+#!/usr/sbin/nft -f
+
+flush ruleset
+
+table inet nat {
+	chain prerouting {
+		type nat hook prerouting priority dstnat; policy accept;
+	}
+	chain postrouting {
+		type nat hook postrouting priority srcnat; policy accept;
+		ip saddr 192.168.54.0/24 masquerade
+	}
+}
+yuan@debian:~$ sudo systemctl status wg-quick@wg0.service
+● wg-quick@wg0.service - WireGuard via wg-quick(8) for wg0
+     Loaded: loaded (/lib/systemd/system/wg-quick@.service; enabled; preset: en>
+     Active: active (exited) since Fri 2025-03-07 10:13:04 EST; 34min ago
+       Docs: man:wg-quick(8)
+             man:wg(8)
+             https://www.wireguard.com/
+             https://www.wireguard.com/quickstart/
+             https://git.zx2c4.com/wireguard-tools/about/src/man/wg-quick.8
+             https://git.zx2c4.com/wireguard-tools/about/src/man/wg.8
+   Main PID: 705 (code=exited, status=0/SUCCESS)
+        CPU: 53ms
+
+Mar 07 10:13:03 debian systemd[1]: Starting wg-quick@wg0.service - WireGuard vi>
+Mar 07 10:13:04 debian wg-quick[705]: [#] ip link add wg0 type wireguard
+Mar 07 10:13:04 debian wg-quick[705]: [#] wg setconf wg0 /dev/fd/63
+Mar 07 10:13:04 debian wg-quick[705]: [#] ip -4 address add 10.113.54.11/32 dev>
+Mar 07 10:13:04 debian wg-quick[705]: [#] ip link set mtu 1420 up dev wg0
+Mar 07 10:13:04 debian wg-quick[705]: [#] ip -4 route add 192.168.0.0/16 dev wg0
+Mar 07 10:13:04 debian wg-quick[705]: [#] ip -4 route add 10.113.0.0/16 dev wg0
+Mar 07 10:13:04 debian systemd[1]: Finished wg-quick@wg0.service - WireGuard vi>
+...skipping...
+● wg-quick@wg0.service - WireGuard via wg-quick(8) for wg0
+     Loaded: loaded (/lib/systemd/system/wg-quick@.service; enabled; preset: en>
+     Active: active (exited) since Fri 2025-03-07 10:13:04 EST; 34min ago
+       Docs: man:wg-quick(8)
+             man:wg(8)
+             https://www.wireguard.com/
+             https://www.wireguard.com/quickstart/
+             https://git.zx2c4.com/wireguard-tools/about/src/man/wg-quick.8
+             https://git.zx2c4.com/wireguard-tools/about/src/man/wg.8
+   Main PID: 705 (code=exited, status=0/SUCCESS)
+        CPU: 53ms
+
+Mar 07 10:13:03 debian systemd[1]: Starting wg-quick@wg0.service - WireGuard vi>
+Mar 07 10:13:04 debian wg-quick[705]: [#] ip link add wg0 type wireguard
+Mar 07 10:13:04 debian wg-quick[705]: [#] wg setconf wg0 /dev/fd/63
+Mar 07 10:13:04 debian wg-quick[705]: [#] ip -4 address add 10.113.54.11/32 dev>
+Mar 07 10:13:04 debian wg-quick[705]: [#] ip link set mtu 1420 up dev wg0
+Mar 07 10:13:04 debian wg-quick[705]: [#] ip -4 route add 192.168.0.0/16 dev wg0
+Mar 07 10:13:04 debian wg-quick[705]: [#] ip -4 route add 10.113.0.0/16 dev wg0
+Mar 07 10:13:04 debian systemd[1]: Finished wg-quick@wg0.service - WireGuard vi>
+~
+~
+~
+yuan@debian:~$ sudo stytemctl status isc-dhcp-server]
+sudo: stytemctl: command not found
+yuan@debian:~$ sudo stytemctl status isc-dhcp-server
+sudo: stytemctl: command not found
+yuan@debian:~$ sudo systemctl status isc-dhcp-server
+● isc-dhcp-server.service - LSB: DHCP server
+     Loaded: loaded (/etc/init.d/isc-dhcp-server; generated)
+     Active: active (running) since Fri 2025-03-07 10:13:06 EST; 35min ago
+       Docs: man:systemd-sysv-generator(8)
+      Tasks: 1 (limit: 2284)
+     Memory: 6.3M
+        CPU: 58ms
+     CGroup: /system.slice/isc-dhcp-server.service
+             └─760 /usr/sbin/dhcpd -4 -q -cf /etc/dhcp/dhcpd.conf enp0s8
+
+Mar 07 10:13:04 debian dhcpd[760]: lease 192.168.4.111: no subnet.
+Mar 07 10:13:04 debian dhcpd[760]: lease 192.168.4.111: no subnet.
+Mar 07 10:13:04 debian dhcpd[760]: lease 192.168.4.111: no subnet.
+Mar 07 10:13:04 debian dhcpd[760]: lease 192.168.4.111: no subnet.
+Mar 07 10:13:04 debian dhcpd[760]: lease 192.168.4.111: no subnet.
+Mar 07 10:13:04 debian dhcpd[760]: lease 192.168.4.111: no subnet.
+Mar 07 10:13:04 debian dhcpd[760]: Can't create new lease file: Permission deni>
+Mar 07 10:13:04 debian dhcpd[760]: Server starting service.
+Mar 07 10:13:06 debian isc-dhcp-server[693]: Starting ISC DHCPv4 server: dhcpd.
+Mar 07 10:13:06 debian systemd[1]: Started isc-dhcp-server.service - LSB: DHCP >
+yuan@debian:~$ sudo systemctl status wg-quick
+Unit wg-quick.service could not be found.
+yuan@debian:~$ sudo systemctl status ssh
+● ssh.service - OpenBSD Secure Shell server
+     Loaded: loaded (/lib/systemd/system/ssh.service; enabled; preset: enabled)
+     Active: active (running) since Fri 2025-03-07 10:13:04 EST; 39min ago
+       Docs: man:sshd(8)
+             man:sshd_config(5)
+   Main PID: 758 (sshd)
+      Tasks: 1 (limit: 2284)
+     Memory: 3.4M
+        CPU: 56ms
+     CGroup: /system.slice/ssh.service
+             └─758 "sshd: /usr/sbin/sshd -D [listener] 0 of 10-100 startups"
+
+Mar 07 10:13:03 debian systemd[1]: Starting ssh.service - OpenBSD Secure Shell >
+Mar 07 10:13:04 debian sshd[758]: Server listening on 0.0.0.0 port 22.
+Mar 07 10:13:04 debian sshd[758]: Server listening on :: port 22.
+Mar 07 10:13:04 debian systemd[1]: Started ssh.service - OpenBSD Secure Shell s>
