@@ -1,0 +1,103 @@
+requirements:
+Consider you are providing services to the Internet, so several firewall 
+configurations must be taken for security. 
+• Configure firewall rules on Router. 
+• Rules:
+ • By default, all connections from Internet and VPN zone to Private zone should be 
+rejected.
+ • By default, all connections from Private zone to VPN zone should be rejected. 
+• SSH connections from anywhere to “Agent” are allowed.
+ • SSH connections from VPN zone to “Router” are not allowed.
+ • ICMP connections from anywhere to anywhere are allowed.
+ • Allow HTTP (80)/HTTPS (443) from Private zone to VPN zone.
+
+**********************************
+in /etc/nftable.conf:
+#!/usr/sbin/nft -f
+
+flush ruleset
+
+# 定義變數
+define INTERNAL_IF = enp0s8         # Router 的內部接口
+define EXTERNAL_IF = enp0s3         # Router 的外部接口
+define VPN_IF = wg0                 # WireGuard 的 VPN 接口
+define AGENT_IP = 192.168.54.234    # Agent 的 IP
+define ROUTER_VPN_IP = 10.113.54.11 # Router 在 VPN 區的 IP
+define PRIVATE_NET = 192.168.54.0/24 # 私有網路
+define VPN_NET = 10.113.0.0/16       # VPN 網段
+
+# NAT 表
+table inet nat {
+    chain prerouting {
+        type nat hook prerouting priority 0; policy accept;
+    }
+    chain postrouting {
+        type nat hook postrouting priority 0; policy accept;
+        ip saddr $PRIVATE_NET oif $EXTERNAL_IF masquerade
+    }
+}
+
+# Filter 表
+table inet filter {
+    chain input {
+        type filter hook input priority 0; policy drop;
+
+        # 允許回環接口
+        iif "lo" accept
+
+        # 允許已建立或相關的連接
+        ct state established,related accept
+
+        # 允許 ICMP
+        ip protocol icmp accept
+
+        # 允許 SSH（但拒絕來自 VPN 接口的 SSH 到 Router）
+        tcp dport 22 iif != $VPN_IF accept
+        tcp dport 22 iif $VPN_IF drop  # 拒絕 VPN 到 Router 的 SSH
+
+        # 允許 WireGuard 端口（根據實際端口修改）
+        udp dport 51054 accept
+
+        # 記錄並丟棄其他流量
+        log prefix "INPUT DROP: " drop
+    }
+
+    chain forward {
+        type filter hook forward priority 0; policy drop;
+
+        # 允許已建立或相關的連接
+        ct state established,related accept
+
+	# 允許所有 ICMP 流量
+         ip protocol icmp accept
+
+        # 允許任何來源 SSH 到 Agent
+        ip daddr $AGENT_IP tcp dport 22 accept
+
+        # 允許 Private → Internet（通過 NAT）
+        ip saddr $PRIVATE_NET oif $EXTERNAL_IF accept
+
+        # 允許 Private → VPN 的 HTTP/HTTPS
+        ip saddr $PRIVATE_NET ip daddr $VPN_NET tcp dport {80,443} accept
+
+        # 拒絕 SSH 從 Private → VPN
+        ip saddr $PRIVATE_NET ip daddr $VPN_NET tcp dport 22 drop
+
+        # 允許 VPN → Private（無需 NAT）
+        iif $VPN_IF ip daddr $PRIVATE_NET accept
+
+        # 拒絕 Internet/VPN → Private（除了上述允許的）
+        ip daddr $PRIVATE_NET drop
+
+        # 記錄並丟棄其他流量
+        log prefix "FORWARD DROP: " drop
+    }
+
+    chain output {
+        type filter hook output priority 0; policy accept;
+    }
+}
+
+*************************
+#command to reload:
+sudo nft -f /etc/nftables.conf
