@@ -1,0 +1,11 @@
+#make sure to start the nftables.service
+sudo systemctl start nftables.service
+
+#check the following status is in active mode:
+sudo systemctl status nftables.service
+sudo systemctl status ssh
+sudo systemctl status isc-dhcp-server
+sudo systemctl status wg-quick@wg0
+
+# this value should be 1
+sysctl net.ipv4.ip_forward
